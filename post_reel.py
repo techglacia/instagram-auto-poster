@@ -6,14 +6,15 @@ from google.oauth2.service_account import Credentials
 
 # Load Google Drive credentials from GitHub Secret
 SERVICE_ACCOUNT_FILE = "service_account.json"
-
 gdrive_creds = os.getenv("GDRIVE_CREDENTIALS")
+
 if gdrive_creds:
     with open(SERVICE_ACCOUNT_FILE, "w") as f:
-        f.write(gdrive_creds)
+        f.write(json.dumps(json.loads(gdrive_creds)))  # Fix JSON writing
 
 # Authenticate with Google Drive
-creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 drive_service = build("drive", "v3", credentials=creds)
 
 # Folder ID where reels are stored (Replace with your actual Folder ID)
@@ -52,24 +53,46 @@ def delete_reel(file_id):
         print(f"Error deleting reel: {e}")
 
 # Instagram API details
-INSTAGRAM_ACCESS_TOKEN = "EAAJnCNEZCqUIBOy0kjcqr8I7BDjqmafbY8Ru10Q6BnK50vGQZCKyrRTIYJqVgwbMldZCSLZAKptF9ZBhzaZBCyQcfSy4K7t265RuCErtKauCuGNbCDasru97Yo7KQtdA31Y9g3lut0J0gEPQkTclgZCafhnt5Tz43GJW9htStf8g30XfOJRTSgcyw7XBHKZB5DO42LAdllZAf9c8aamyIr5FMrBVHKhZCv"
-INSTAGRAM_USER_ID = "17841472944697055"
+INSTAGRAM_ACCESS_TOKEN = os.getenv("EAAJnCNEZCqUIBOy0kjcqr8I7BDjqmafbY8Ru10Q6BnK50vGQZCKyrRTIYJqVgwbMldZCSLZAKptF9ZBhzaZBCyQcfSy4K7t265RuCErtKauCuGNbCDasru97Yo7KQtdA31Y9g3lut0J0gEPQkTclgZCafhnt5Tz43GJW9htStf8g30XfOJRTSgcyw7XBHKZB5DO42LAdllZAf9c8aamyIr5FMrBVHKhZCv")
+INSTAGRAM_USER_ID = os.getenv("17841472944697055")
+
+if not INSTAGRAM_ACCESS_TOKEN or not INSTAGRAM_USER_ID:
+    print("⚠️ Missing Instagram API credentials!")
+    exit()
+
 INSTAGRAM_API_URL = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media"
 
 def instagram_post(video_url):
     """Post the reel to Instagram"""
+    # Step 1: Upload the reel to Instagram (returns a container ID)
     payload = {
         "video_url": video_url,
         "caption": "Daily Reel! #Reels #Automation",
-        "access_token": INSTAGRAM_ACCESS_TOKEN,
-        "media_type": "REELS"
+        "access_token": INSTAGRAM_ACCESS_TOKEN
     }
     
     response = requests.post(INSTAGRAM_API_URL, data=payload)
     if response.status_code == 200:
-        print("Reel posted successfully!")
+        container_id = response.json().get("id")
+        print(f"✅ Video uploaded! Container ID: {container_id}")
+
+        # Step 2: Publish the reel using the container ID
+        publish_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media_publish"
+        publish_payload = {
+            "creation_id": container_id,
+            "access_token": INSTAGRAM_ACCESS_TOKEN
+        }
+        
+        publish_response = requests.post(publish_url, data=publish_payload)
+        if publish_response.status_code == 200:
+            print("🎉 Reel published successfully!")
+            return True
+        else:
+            print(f"❌ Failed to publish reel: {publish_response.text}")
+            return False
     else:
-        print("Failed to post reel:", response.text)
+        print(f"❌ Failed to upload reel: {response.text}")
+        return False
 
 # Fetch the next reel
 reel_url, reel_id = get_next_reel()
@@ -77,8 +100,7 @@ if reel_url:
     print(f"Next Reel: {reel_url}")
 
     # Post to Instagram
-    instagram_post(reel_url)
-
-    # Delete the reel after posting
-    if reel_id:
-        delete_reel(reel_id)
+    if instagram_post(reel_url):
+        # Delete the reel after posting
+        if reel_id:
+            delete_reel(reel_id)
