@@ -8,22 +8,18 @@ from google.oauth2.service_account import Credentials
 SERVICE_ACCOUNT_FILE = "service_account.json"
 gdrive_creds = os.getenv("GDRIVE_CREDENTIALS")
 
-if gdrive_creds:
-    with open(SERVICE_ACCOUNT_FILE, "w") as f:
-        f.write(json.dumps(json.loads(gdrive_creds)))  # Fix JSON writing
-else:
+if not gdrive_creds:
     print("⚠️ Google Drive credentials missing! Exiting.")
     exit()
 
-# Authenticate with Google Drive
-SCOPES = ["https://www.googleapis.com/auth/drive"]
 try:
-    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    drive_service = build("drive", "v3", credentials=creds)
-except Exception as e:
-    print(f"🚨 Error initializing Google Drive API: {e}")
+    creds_data = json.loads(gdrive_creds)  # Ensure it's valid JSON
+    with open(SERVICE_ACCOUNT_FILE, "w") as f:
+        json.dump(creds_data, f, indent=4)
+    print("✅ Google Drive credentials saved successfully.")
+except json.JSONDecodeError:
+    print("❌ Invalid JSON format in GDRIVE_CREDENTIALS.")
     exit()
-
 # Folder ID where reels are stored
 FOLDER_ID = "1GpQI3AlCV1j6an2ahynEOs7F79Dp3nUv"
 
