@@ -17,7 +17,7 @@ creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 drive_service = build("drive", "v3", credentials=creds)
 
 # Folder ID where reels are stored (Replace with your actual Folder ID)
-FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+FOLDER_ID = "1GpQI3AlCV1j6an2ahynEOs7F79Dp3nUv"
 
 def get_next_reel():
     """Fetch the next reel from Google Drive"""
@@ -52,8 +52,8 @@ def delete_reel(file_id):
         print(f"Error deleting reel: {e}")
 
 # Instagram API details
-INSTAGRAM_ACCESS_TOKEN = "YOUR_INSTAGRAM_ACCESS_TOKEN"
-INSTAGRAM_USER_ID = "YOUR_INSTAGRAM_USER_ID"
+INSTAGRAM_ACCESS_TOKEN = "EAAJnCNEZCqUIBOy0kjcqr8I7BDjqmafbY8Ru10Q6BnK50vGQZCKyrRTIYJqVgwbMldZCSLZAKptF9ZBhzaZBCyQcfSy4K7t265RuCErtKauCuGNbCDasru97Yo7KQtdA31Y9g3lut0J0gEPQkTclgZCafhnt5Tz43GJW9htStf8g30XfOJRTSgcyw7XBHKZB5DO42LAdllZAf9c8aamyIr5FMrBVHKhZCv"
+INSTAGRAM_USER_ID = "17841472944697055"
 INSTAGRAM_API_URL = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media"
 
 def instagram_post(video_url):
