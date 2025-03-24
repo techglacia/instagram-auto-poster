@@ -1,0 +1,24 @@
+name: Auto Post Instagram Reel
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Runs daily at 12 PM UTC
+  workflow_dispatch:   # Allows manual trigger
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: pip install requests gdown
+
+      - name: Run script
+        run: python post_reel.py
