@@ -1,10 +1,11 @@
 import os
 import json
+import time
 import requests
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 
-# Load Google Drive credentials from GitHub Secret
+# Load Google Drive credentials from GitHub Secrets
 SERVICE_ACCOUNT_FILE = "service_account.json"
 gdrive_creds = os.getenv("GDRIVE_CREDENTIALS")
 
@@ -12,14 +13,24 @@ if not gdrive_creds:
     print("⚠️ Google Drive credentials missing! Exiting.")
     exit()
 
+# Save Google Drive credentials to file
 try:
-    creds_data = json.loads(gdrive_creds)  # Ensure it's valid JSON
+    creds_data = json.loads(gdrive_creds)
     with open(SERVICE_ACCOUNT_FILE, "w") as f:
         json.dump(creds_data, f, indent=4)
     print("✅ Google Drive credentials saved successfully.")
 except json.JSONDecodeError:
     print("❌ Invalid JSON format in GDRIVE_CREDENTIALS.")
     exit()
+
+# Authenticate Google Drive API
+try:
+    creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=["https://www.googleapis.com/auth/drive"])
+    drive_service = build("drive", "v3", credentials=creds)
+except Exception as e:
+    print(f"🚨 Google Drive authentication failed: {e}")
+    exit()
+
 # Folder ID where reels are stored
 FOLDER_ID = "1GpQI3AlCV1j6an2ahynEOs7F79Dp3nUv"
 
@@ -43,6 +54,7 @@ def get_next_reel():
         reel_name = files[0]["name"]
         reel_url = f"https://drive.google.com/uc?export=download&id={reel_id}"
 
+        print(f"🎥 Found Reel: {reel_name} ({reel_url})")
         return reel_url, reel_id
     except Exception as e:
         print(f"🚨 Error fetching reels from Google Drive: {e}")
@@ -56,7 +68,7 @@ def delete_reel(file_id):
     except Exception as e:
         print(f"❌ Error deleting reel: {e}")
 
-# Instagram API details
+# Instagram API details (Loaded securely from GitHub Secrets)
 INSTAGRAM_ACCESS_TOKEN = os.getenv("EAAJnCNEZCqUIBOy0kjcqr8I7BDjqmafbY8Ru10Q6BnK50vGQZCKyrRTIYJqVgwbMldZCSLZAKptF9ZBhzaZBCyQcfSy4K7t265RuCErtKauCuGNbCDasru97Yo7KQtdA31Y9g3lut0J0gEPQkTclgZCafhnt5Tz43GJW9htStf8g30XfOJRTSgcyw7XBHKZB5DO42LAdllZAf9c8aamyIr5FMrBVHKhZCv")
 INSTAGRAM_USER_ID = os.getenv("17841472944697055")
 
@@ -82,8 +94,13 @@ def instagram_post(video_url):
             return None
 
         container_id = response.json().get("id")
-        print(f"✅ Video uploaded! Container ID: {container_id}")
-
+        if not container_id:
+            print("❌ No container_id received from Instagram.")
+            return None
+        
+        print(f"✅ Video uploaded! Waiting 10 seconds for processing...")
+        time.sleep(10)  # Wait for Instagram to process the video
+        
         # Step 2: Publish the reel
         publish_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_USER_ID}/media_publish"
         publish_payload = {
@@ -105,8 +122,6 @@ def instagram_post(video_url):
 # Fetch the next reel
 reel_url, reel_id = get_next_reel()
 if reel_url:
-    print(f"🎥 Next Reel: {reel_url}")
-
     # Post to Instagram
     is_posted = instagram_post(reel_url)
     
